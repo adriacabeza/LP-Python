@@ -28,7 +28,6 @@ def flatten(llista):
 - Inserir un element en una llista ordenada
 ```python
 def insert(llista, elem):
-    #TODO:preguntar si algu ho ha fet sense fors o sense bisect
     print("Anem a inserir", elem, "a la llista")
     if llista[-1] < elem:
         llista.insert(len(llista), elem)
