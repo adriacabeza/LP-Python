@@ -70,8 +70,6 @@ def invertir(llista):
 def productpar(llista):
     return reduce(lambda x,y: x*y if y%2 == 0 else x,llista)
 
-12345
-21345
 
 if __name__ == '__main__':
     #TODO: preguntar què passa si son de tipus diferents 
