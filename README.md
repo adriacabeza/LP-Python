@@ -1,4 +1,4 @@
-# Lab 1 
+# Exercicis de Python
 ### Funcions amb llistes
 - Nombre d'elements diferents d'una llista
 ```python
