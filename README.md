@@ -77,6 +77,10 @@ def howmanytimes(llista, elem):
     return llista.count(elem)
 ```
 - Invertir una llista amb reduce 
+```python 
+def reverseList(llista):
+    return reduce(lambda x, y : [y]+x), llista, [])
+```
 
 - Fer el producte dels números pars d'una llista
 ```python
