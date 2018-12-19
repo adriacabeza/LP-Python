@@ -1,4 +1,4 @@
-[![HitCount](http://hits.dwyl.io/adriacabeza/LP-Python.svg)](http://hits.dwyl.io/adriacabeza/LP-Python) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
+[![HitCount](http://hits.dwyl.io/adriacabeza/LP-Python.svg)](http://hits.dwyl.io/adriacabeza/LP-Python) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/adriacabeza/LP-Python)
 
 # Exercicis de Python
 ### Funcions amb llistes
