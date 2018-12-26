@@ -16,9 +16,8 @@ def load(key):
     return value 
 
 def distance(elem, station):
-    #using haversine formula assuming that the Earth is a sphere
-    longitud1, latitud1 = map(radians, [station['long'], station['lat']])
-    longitud2, latitud2 = map(radians, [elem['long'], elem['lat']])
+    longitud1, latitud1 = map(radians, [station['log'], station['lat']])
+    longitud2, latitud2 = map(radians, [elem['log'], elem['lat']])
     dlon = longitud2 - longitud1
     dlat = latitud2 - latitud1
     a = sin(dlat / 2)**2 + cos(latitud1) * cos(latitud2) * sin(dlon / 2)**2
@@ -26,61 +25,99 @@ def distance(elem, station):
     distance = 6373.0 * c
     return distance 
 
-
+#parseja totes les estacions de bicing 
+#PENSAR SI NECESSITO EL ID 
 def parse_stations(xml):
     root = ET.fromstring(xml)
     stations = list()
     for station in root.iter('station'):
+        id = station.find('id')
+        lat = station.find('lat')
+        log = station.find('log')
+        street = station.find('street')
+        bikes= station.find('bikes')
+        slots = station.find('slots')
+        if any(map(lambda x: x is None, (id,lat,log,street,bikes,slots))):
+            continue
         information = {
-            'id': station.find('id').text,
-            'lat': station.find('lat').text,
-            'long': station.find('long').text,
-            'street': html.unescape(station.find('street').text),
-            'bikes': station.find('bikes').text,
-            'slots': station.find('slots').text
+            'id': id.text,
+            'lat':lat.text,
+            'log':log.text,
+            'street':html.unescape(street.text),
+            'bikes': bikes.text,
+            'slots': slots.text
         }
         stations.append(information)
 
     return stations
 
 
-
-def parse_parkings(xml):
+#parseja tots els actes 
+def parse_actes(xml):
     root = ET.fromstring(xml)
-    llistaParkings = list()
-    for parking in root.iter('acte'):
+    llistaActes = list()
+    for acte in root.iter('acte'):
+        nom = acte.find('nom')
+       
+        dates = acte.find('data')
+        data_init = dates.find('data_inici')
+        data_fi = dates.find('data_fi')
+        hora = dates.find('hora_inici') 
+
+        lloc = acte.find('lloc_simple').find('adreca_simple')
+        districte = lloc.find('districte')
+        carrer = lloc.find('carrer')
+        numero = lloc.find('numero')
+        coordenades = lloc.find('coordenades').find('geocodificacio')
+        lat = coordenades.get('x')
+        log = coordenades.get('y')
+
+        if any(map(lambda x: x is None, (nom,districte,carrer, numero, data_init, data_fi))):
+            continue
         information = {
-            'id': parking.find('nom').text,
-            # 'long': parking.find('geocodificacio')['y'].text,
-            # 'address': html.unescape(parking.find('address').text)
+            'nom': nom,
+            'districte':districte.text,
+            'log':log,
+            'lat':lat,
+            # 'hora':hora, 
+            'data_init':data_init.text,
+            'data_fi':data_fi.text,
+            'address': carrer.text # + numero.text
         }
-        # print(information)
-        llistaParkings.append(information)
+        llistaActes.append(information)
+    
+    return llistaActes
 
-    return llistaParkings
 
-
-# def crearmapa(stations):
-
+#retorna els parkings de bicing que estan a una distancia menor del parametre
+def getParkings(stations,elem, distance=300):
+    llistaParking = list()
+    for i in stations:
+        if distance(elem,i) <= distance :
+                llistaParking.append(i)
+    return llistaParking
 
 
 
 def main():
     key = load('--key')
     date = load('--date')
+    distance = load('--distance')
+    #TEMA ACTES
+    ACTES = urllib.request.urlopen(URL2).read()
+    actes = parse_actes(ACTES)
+    print(actes)
+
+    #TEMA BICING 
     BICING = urllib.request.urlopen(URL1).read()
-    PARKING = urllib.request.urlopen(URL2).read()
     stations = parse_stations(BICING)
-    parkings = parse_parkings(PARKING)
+
+
+    
+    # getParkings(stations, elem, distance)
     # print("STATIONS")
-    print(stations)
-    # print(PARKING)
-    print("PARKINGS")
-    # print(parkings)
-
-
-    # acts = crearmapa(stations)
-
+    # print(stations)
+    
 #per fer la pàgina 
     # body = ET.Element("body")
     # estil = open("style.txt", "r")
