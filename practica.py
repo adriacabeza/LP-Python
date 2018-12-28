@@ -88,8 +88,6 @@ def afegir_parkings(llista, stations, dist):
         #ara cada estació té a dintre la distancia
         st = list(filter(lambda x: x['distance'] <= dist, stations)) 
         st = sorted(st, key= lambda x: x['distance'])
-        print(l['nom'])
-        print(st)
         slots = list(filter(lambda x: int(x['slots']) > 0, st))
         bikes = list(filter(lambda x: int(x['bikes']) > 0, st))
         l['slots']=[item['street'] for item in slots[:5]]
@@ -167,7 +165,7 @@ def dif_dates(elem, date):
 def make_html(llista):
     html = ET.Element('html')
     head = ET.SubElement(html,'head')
-    style = ET.SubElement(html,"style").text = """
+    ET.SubElement(html,"style").text = """
    @import "https://fonts.googleapis.com/css?family=Montserrat:300,400,700";
 
 body {
@@ -206,13 +204,14 @@ table, th, td {
     tree = ET.ElementTree(html)
     tree.write("output.html")
 
-    
-#modifica una data"%d/%m/%Y" per a avaluar-la
-def eval_date(date):
-    
-    
-    return 
 
+
+#modifica una data %d/%m/%Y per a avaluar-la afegint ""
+def eval_date(date):
+    date.insert(0,'\"')
+    date.insert(len(date),'\"')
+    return ''.join(date)
+#TODO: preguntar si poden ser moltes dates
 
 
 #carrega un xml d'un url
@@ -226,7 +225,7 @@ def main():
     ap.add_argument("--date", required= False, help = "afegir el dia amb el format DIA/MES/ANY")
     args = vars(ap.parse_args())
     key = None if args['key'] == None else literal_eval(args['key'])
-    date = datetime.today().strftime(DATE_FORMAT) if args['date'] == None  else literal_eval(eval_date(args['date']))
+    date = datetime.today().strftime(DATE_FORMAT) if args['date'] == None  else literal_eval(eval_date(list(args['date'])))
     dist = 300 if args['distance'] == None else literal_eval(args['distance'])
     
     #TEMA ACTES
