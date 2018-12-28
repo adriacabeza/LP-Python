@@ -2,20 +2,16 @@ import sys
 import urllib.request
 import html 
 import string
+import unicodedata
+import argparse 
 from datetime import datetime
 import xml.etree.ElementTree as ET
+from ast import literal_eval
 from math import sin,cos,sqrt,asin,radians
 
 URL1= 'http://wservice.viabicing.cat/getstations.php?v=1'
 URL2= 'http://w10.bcn.es/APPS/asiasiacache/peticioXmlAsia?id=103'
 DATE_FORMAT = "%d/%m/%Y"
-
-#CANVIARHO
-def load(key):
-    value = None 
-    if key in sys.argv:
-        value = eval(sys.argv[sys.argv.index(key)+1])
-    return value 
 
 #retorna la distancia entre elem i station
 def distance(elem, station):
@@ -68,7 +64,6 @@ def parse_actes(xml):
         coordenades = lloc.find('coordenades').find('geocodificacio')
         lat = coordenades.get('x')
         log = coordenades.get('y')
-        # print(list(map(lambda x: x is None, (nom,districte,carrer, numero, data_init, data_fi))))
         if any(map(lambda x: x.text is None, (nom,districte,carrer, numero, data_init, data_fi))):
             continue
         information = {
@@ -76,7 +71,7 @@ def parse_actes(xml):
             'districte':districte.text,
             'log':log,
             'lat':lat,
-            #'hora':hora,  PREGUNTAR AL PROFE PQ QUASI SEMPRE ES NULL
+            'hora':"XX.XX" if hora.text is None else hora.text,
             'data_init':data_init.text,
             'data_fi':data_fi.text,
             'address': html.unescape(str(carrer.text)) + " "+ html.unescape(str(numero.text))
@@ -85,96 +80,91 @@ def parse_actes(xml):
     return llistaActes
 
 
-#retorna els parkings de bicing que estan a una distancia menor del parametre
-def getParkings(stations,elem, dist=300):
-    llistaParking = list()
-    for i in stations:
-        distancia = distance(elem,i)
-        if distancia <= dist :
-                i['distance']= distancia
-                llistaParking.append(i)
-    return llistaParking
+#per a cada element de la llista he de ficar-li els seus slots i bikes
+def afegir_parkings(llista, stations, dist):
+    for l in llista: 
+        for x in stations: 
+            x['distance'] = distance(l,x)  
+        #ara cada estació té a dintre la distancia
+        st = list(filter(lambda x: x['distance'] <= dist, stations)) 
+        st = sorted(st, key= lambda x: x['distance'])
+        print(l['nom'])
+        print(st)
+        slots = list(filter(lambda x: int(x['slots']) > 0, st))
+        bikes = list(filter(lambda x: int(x['bikes']) > 0, st))
+        l['slots']=[item['street'] for item in slots[:5]]
+        l['bikes']= [item['street'] for item in bikes[:5]] 
+
+    return llista
 
 #retorna true si està entre les dues dates d'elem
-def filterDate(date,elem):
-    current = datetime.strptime(date, format)
-    ini = datetime.strptime(elem['data_init'])
-    fin = datetime.strptime(elem['data_fi'])
+def filterDate(elem, date):
+    current = datetime.strptime(date, DATE_FORMAT)
+    ini = datetime.strptime(elem['data_init'],DATE_FORMAT)
+    fin = datetime.strptime(elem['data_fi'],DATE_FORMAT)
     return (ini < current and current < fin)
 
-#retorna true si té alguns dels temes de key CANVIAR_HO
-def filterEvent(key, elem):
-    if isinstance(key, str):
-        return key in elem['districte'] or key in elem['nom'] or key in elem['address']
-    elif isinstance(key, list):
-        filters = map(filterEvent(key,elem), key)
-        return all(map(lambda f: f(elem), filters))
-    elif isinstance(key, tuple):
-        return any(map(lambda f: f(elem), map(filterEvent(key,elem), key)))
-    return False
-
-def afegeix_activitat(act,table):
+#afegeix headers de la taula 
+def afegeix_headers(table):
     tr = ET.SubElement(table, "tr")
     th = ET.SubElement(tr, "th",align="left").text = "Nom"    
     th = ET.SubElement(tr, "th",align="left").text = "Adreça" 
     th = ET.SubElement(tr, "th",align="left").text = "Districte"        
     th = ET.SubElement(tr, "th",align="left").text = "Dia"    
-    
+    th = ET.SubElement(tr, "th",align="left").text = "Hora"    
+    th = ET.SubElement(tr, "th", align="left").text = "Estacions amb Slots"
+    th = ET.SubElement(tr, "th", align="left").text = "Estacions amb Bicis"
+
+ 
+#afegeix una activitat a la taula 
+def afegeix_activitat(act,table):
     tr = ET.SubElement(table, "tr")
     th = ET.SubElement(tr, "td").text = act['nom']    
     th = ET.SubElement(tr, "td").text = act['address']   
     th = ET.SubElement(tr, "td").text = act['districte']  
     th = ET.SubElement(tr, "td").text = act['data_init']+'-'+act['data_fi']    
-    # th = ET.SubElement(tr, "td").text = act['slots']   
-    # th = ET.SubElement(tr, "td").text = act['bikes']
+    th = ET.SubElement(tr, "td").text = act['hora']  
+    text = str()
+    first = True
+    if(len(act['slots']) == 0): th = ET.SubElement(tr, "td").text = "No hi ha slots disponibles"
+    else:
+        for i in act['slots']:
+            if first:  
+                text = i
+                first = False
+            else : text = text + ", " + i
+        th = ET.SubElement(tr, "td").text = text
+        first = True
+    text = str()
+    if(len(act['bikes']) == 0): th = ET.SubElement(tr, "td").text = "No hi ha bicis disponibles"
+    else:
+        for i in act['bikes']:
+            if first:  
+                text = i
+                first = False
+            else: text = text + ", " + i
+        th = ET.SubElement(tr, "td").text = text
 
-#ARREGLAR
-def afegeix_bicing(llista,table):
-    th = ET.SubElement(table, "th").text = "Nom"    
-    for parking in parkings:
-        for i in parking:
-            tr = ET.SubElement(table, "tr")
-            th = ET.SubElement(tr, "td").text = i['street']
-    th = ET.SubElement(table, "th").text = "Nom"    
-    for parking in parkings:
-        for i in parking:
-            tr = ET.SubElement(table, "tr")
-            th = ET.SubElement(tr, "td").text = i['street']
-#ARREGLAR
-def afegirparkings(parkings,llista):
-    for i in range(len(llista)):
-        llista[i]['slots'] = sorted(parkings[i], key= lambda x: x['distance'])
-        llista[i]['bikes'] = sorted(parkings[i],key=lambda x: x['distance'])
+#normalitza un text
+def normalize(value):
+    return unicodedata.normalize('NFC', value.casefold())
 
+#filtra segons les paraules clau
+def filterEvent(key, elem):
+    if isinstance(key, str):
+        return normalize(key) in normalize(elem['districte']) or normalize(key) in normalize(elem['nom']) or normalize(key) in normalize(elem['address'])
+    elif isinstance(key, list):
+        return all(map(lambda x: filterEvent(x,elem), key))
+    elif isinstance(key, tuple):
+        return any(map(lambda x: filterEvent(x,elem), key))
+    return False
 
-def main():
-    #fer-ho amb argparse
-    key = load('--key')
-    date = load('--date')
-    dist = load('--distance')
+#TODO: mirar si fer-ho amb l'interval de dates o amb data inici ja està bé
+def dif_dates(elem, date):
+    return abs((datetime.strptime(elem['data_init'],DATE_FORMAT)- datetime.strptime(date, DATE_FORMAT)).days)
 
-    #TEMA ACTES
-    ACTES = urllib.request.urlopen(URL2).read()
-    actes = parse_actes(ACTES)
-
-    #TEMA BICING 
-    BICING = urllib.request.urlopen(URL1).read()
-    stations = parse_stations(BICING)
-
-    
-    #FILTRO LES ESTACIONS I EVENTS  
-    if key:
-        llista = list(filter(lambda x: filterEvent(key,x), actes))
-    if date:
-        llista = list(filter(lambda x: filterDate(date,x),actes))
-    
-    parkings = list(map(lambda x: getParkings(stations,x,dist), llista))
-    #LO QUE SE TIENE QUE ARREGLAR
-    afegirparkings(parkings, llista)
-    print("LLISTA")
-    for j in llista: print(j)
-    
-    #MAKING THE WEBSITE
+#crea la taula html amb els actes
+def make_html(llista):
     html = ET.Element('html')
     head = ET.SubElement(html,'head')
     style = ET.SubElement(html,"style").text = """
@@ -194,20 +184,14 @@ h1 {
   letter-spacing: -1px;
   color: #34495E;
 }
-
-.rwd-table {
-  background: #34495E;
-  color: #fff;
-  border-radius: .4em;
-}
-.rwd-table tr {
-  border-color: #46637f;buscats i le
+th,td{
+    text-align:center;
 }
 
-.rwd-table th, .rwd-table td:before {
-  color: #dd5;
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
 }
-
     """
     title = ET.SubElement(head,'title')
     title.text = 'Taula amb els actes buscats i les estacions de bicing'
@@ -215,13 +199,59 @@ h1 {
     titol = ET.SubElement(body,"h1", align= "center")
     titol.text = 'Taula amb els actes buscats i les estacions de bicing'
     table = ET.SubElement(body,"table", width="100%")
+    afegeix_headers(table)
     for act in llista:
         afegeix_activitat(act,table)
-        # afegeix_bicing(parkings,table)
-    
-
+        
     tree = ET.ElementTree(html)
     tree.write("output.html")
+
+    
+#modifica una data"%d/%m/%Y" per a avaluar-la
+def eval_date(date):
+    
+    
+    return 
+
+
+
+#carrega un xml d'un url
+def carregarXML(url):
+    return urllib.request.urlopen(url).read()
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--distance", required= False, help = "afegir la distancia")
+    ap.add_argument("--key", required= True, help="afegir les paraules clau")
+    ap.add_argument("--date", required= False, help = "afegir el dia amb el format DIA/MES/ANY")
+    args = vars(ap.parse_args())
+    key = None if args['key'] == None else literal_eval(args['key'])
+    date = datetime.today().strftime(DATE_FORMAT) if args['date'] == None  else literal_eval(eval_date(args['date']))
+    dist = 300 if args['distance'] == None else literal_eval(args['distance'])
+    
+    #TEMA ACTES
+    ACTES = carregarXML(URL2)
+    actes = parse_actes(ACTES)
+
+    #TEMA BICING 
+    BICING = carregarXML(URL1)
+    stations = parse_stations(BICING)
+    
+    #FILTRO LES ESTACIONS I EVENTS  
+    if key:
+        llista = list(filter(lambda x: filterEvent(key,x), actes))
+    if date:
+        llista = list(filter(lambda x: filterDate(x,date),llista))
+
+    #ordenar segons la proximitat de data inici
+    llista = sorted(llista, key = lambda x: dif_dates(x,date))
+
+    #filtrar per cada activitat les estacions a menys distance
+    llista = afegir_parkings(llista,stations,dist)
+  
+    make_html(llista)
+
+
 
 if __name__ == '__main__':
     main()
