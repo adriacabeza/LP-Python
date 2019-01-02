@@ -131,8 +131,6 @@ def filterDate(elem, date):
     current = datetime.strptime(date, DATE_FORMAT)
     ini = datetime.strptime(elem['data_init'],DATE_FORMAT)
     fin = datetime.strptime(elem['data_fi'],DATE_FORMAT)
-    print("és ", current, " més tard que", ini,"? ", ini <current)
-    print("és ", current, " més aviat que", fin, "? ", current < fin)
     return (ini <= current or current <= fin)
 
 #afegeix headers de la taula 
@@ -294,13 +292,11 @@ def main():
     if bicing: 
         #filtrar per cada activitat les estacions a menys distance
         llista = afegirParkings(llista,stations,dist)
-        print(llista)
     else:
         llista = list(filter(lambda x: filterDate(x,date),llista))
          #ordenar segons la proximitat de data inici
         llista = sorted(llista, key = lambda x: dif_dates(x,date))
-        print(llista)
-  
+        
     make_html(llista, bicing)
 
 
