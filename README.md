@@ -89,12 +89,76 @@ def reverseList(llista):
 def productpar(llista):
     return reduce(lambda x,y: x*y if y%2 == 0 else x,llista)
 ```
-- 7.3.1 Només ZipWith
-- 7.4.4 Factors d'un nombre 
-- 7.4.5 Ternes pitagòriques
+- TakeWhile
+```python 
+def takeWhile(l, n):
+    # return [l[x] for x in range(n)]
+    return l[:n]
+```
+
+- DropWhile
+```python 
+def dropWhile(l,n):
+    # return [l[x] for x in range(n, len(l))]
+    return l[n:]
+
+```
+
+- CountIf: que donada una propietat i una llista, ens retorna
+el nombre d’elements de la llista que satisfan la propietat. 
+```python 
+def countIf(f,l):
+    return len(list(filter(lambda x: f(x), l)))
+```
+
+- Factors d'un número
+```python 
+def factors(n):    
+    return set(reduce(list.__add__,  ([i, n//i] for i in range(1, int(n*0.5) + 1) if not n % i)))
+```
+
+-  ZipWith
+```python 
+def zipWith(f,l,r):
+    return [f(a,b) for (a,b) in zip(l,r) ] 
+```
+
+
 
 # Lab 2
 - Problemes de classes
+```python
+class Tree:
+    def __init__ (self,x):
+        self.rt = x
+        self.child = []
+        
+    def addChild (self,a):
+        self.child.append(a)
+        
+    def root (self):
+        return self.rt
+    
+    def ithChild (self,x):
+        return self.child[x]
+    
+    def numChildren (self):
+        return len(self.child)
+
+   
+class Pre(Tree):
+    def preorder(self):
+        sol = [self.rt]
+        if self.numChildren == 0: return self.rt
+        sol += list(map(lambda arg: arg.preorder(), self.child))
+        return sol
+
+a = Pre(2)
+a.addChild(Pre(3))
+a.addChild(Pre(4))
+print (a.preorder())
+
+```
 - Problema del Bicing 
 ```python 
 # -*- coding: utf-8 -*-
